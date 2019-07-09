@@ -2,68 +2,58 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"strconv"
-	"bufio"
 	"strings"
 )
 
-type QuizQuestion struct {
-	Question string
-	Answer string
+func main() {
+	csvFilename := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
+	flag.Parse()
+
+	file, err := os.Open(*csvFilename)
+	if err != nil {
+		exit(fmt.Sprintf("Failed to open the CSV file: %s\n", *csvFilename))
+		os.Exit(1)
+	}
+	r := csv.NewReader(file)
+	lines, err := r.ReadAll()
+	if err != nil {
+		exit("Failed to parse the provided CSV file.")
+	}
+	problems := parseLines(lines)
+
+	correct := 0
+	for i, p := range problems {
+		fmt.Printf("Problem #%d: %s = \n", i+1, p.q)
+		var answer string
+		fmt.Scanf("%s\n", &answer)
+		if answer == p.a {
+			correct++
+		}
+	}
+
+	fmt.Printf("You scored %d out of %d.\n", correct, len(problems))
 }
 
-func main() {
-	//read csv
-	csvfile, err := os.Open("problems.csv")
-	if err != nil {
-		log.Fatalln("Couldn't open the csv file", err)
-	}
-
-	r := csv.NewReader(csvfile)
-
-	//create array of questions/answers
-	quiz := [12]QuizQuestion{}
-	for i := 0; i < 13; i++ {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		quiz[i] = QuizQuestion{Question: record[0], Answer: record[1]};
-	}
-
-	//loop through array
-	for i:=0; i < len(quiz); i++ {
-		//write question to command line
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Question " + strconv.Itoa(i+1) + ": What is " + quiz[i].Question + "?\n")
-		//take user input
-		text, _ := reader.ReadString('\n')
-		//match user input against the answer
-		split := strings.Split(quiz[i].Question, "+")
-
-		a, err := strconv.Atoi(split[0])
-		b, err := strconv.Atoi(split[1])
-		textInt, err := strconv.Atoi(strings.TrimSuffix(text, "\n"))
-
-		if err == nil {
-			var correctAnswer int
-			correctAnswer = a + b
-			
-			//return correct or incorrectx
-			if (correctAnswer == textInt) {
-				fmt.Println("Correct!");
-			} else {
-				fmt.Println("Sorry :( The correct answer is " + strconv.Itoa(correctAnswer) + ".")
-			}
-		} else {
-			log.Fatal(err)
+func parseLines(lines [][]string) []problem {
+	ret := make([]problem, len(lines))
+	for i, line := range lines {
+		ret[i] = problem{
+			q: line[0],
+			a: strings.TrimSpace(line[1]),
 		}
 	}
+	return ret
+}
+
+type problem struct {
+	q string
+	a string
+}
+
+func exit(msg string) {
+	fmt.Printf(msg)
+	os.Exit(1)
 }
