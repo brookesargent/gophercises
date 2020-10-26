@@ -1,0 +1,18 @@
+# Build outputs shouldn't be checked into source
+bin
+build
+
+# golang vendor (dependencies) directory
+vendor
+
+# Goland files
+.idea/
+*.iml
+
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+
+
