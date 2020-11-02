@@ -28,23 +28,41 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	quiz := make([]Problem, len(lines))
+	quiz := parseLines(lines)
 	correct := 0
 	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
-	fmt.Println(timer)
-	for i, line := range lines {
-		quiz[i] = Problem{
-			Question: line[0],
-			Answer: line[1],
-		}
-		var inputAnswer string
-		fmt.Println(quiz[i].Question)
-		fmt.Scanf("%s\n", &inputAnswer)
-		if inputAnswer == quiz[i].Answer {
-			correct++
+
+	problemLoop:
+	for i, q := range quiz {
+		fmt.Printf("Problem #%d: %s = \n", i+1, q.Question)
+		answerCh := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			answerCh <- answer
+		}()
+
+		select {
+		case <-timer.C:
+			break problemLoop
+		case answer := <-answerCh:
+			if answer == q.Answer {
+				correct++
+			}
 		}
 	}
 
-
 	fmt.Printf("You scored %d out of %d.\n", correct, len(quiz))
+}
+
+
+func parseLines(lines [][]string) []Problem {
+	problems := make([]Problem, len(lines))
+	for i, line := range lines {
+		problems[i] = Problem{
+			Question: line[0],
+			Answer: line[1],
+		}
+	}
+	return problems
 }
